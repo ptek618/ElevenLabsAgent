@@ -69,9 +69,11 @@ export function mapAccountFinancialsResponse(data: any, accountId: string): Cust
   }
 
   const invoices = account.invoices?.entities || [];
-  const currentBalance = invoices
+  const rawBalance = invoices
     .filter((invoice: any) => (invoice.remaining_due || 0) > 0)
-    .reduce((sum: number, invoice: any) => sum + (invoice.remaining_due || 0), 0) / 100;
+    .reduce((sum: number, invoice: any) => sum + (invoice.remaining_due || 0), 0);
+  
+  const currentBalance = rawBalance > 1000 && rawBalance % 100 === 0 ? rawBalance / 100 : rawBalance;
   
   const services = account.account_services?.entities || [];
   const billingPlan = services.length > 0 ? services[0].service?.name || 'Unknown' : 'Unknown';
@@ -88,7 +90,10 @@ export function mapAccountFinancialsResponse(data: any, accountId: string): Cust
     isDelinquent: isDelinquent,
     lastPayment: lastPayment ? {
       date: lastPayment.created_at,
-      amount: (lastPayment.amount || 0) / 100,
+      amount: (() => {
+        const rawAmount = lastPayment.amount || 0;
+        return rawAmount > 1000 && rawAmount % 100 === 0 ? rawAmount / 100 : rawAmount;
+      })(),
       method: lastPayment.payment_type,
       reference: lastPayment.reference,
     } : null,
