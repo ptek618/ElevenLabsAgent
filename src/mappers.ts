@@ -69,7 +69,9 @@ export function mapAccountFinancialsResponse(data: any, accountId: string): Cust
   }
 
   const invoices = account.invoices?.entities || [];
-  const currentBalance = invoices.reduce((sum: number, invoice: any) => sum + (invoice.total_debits || 0), 0);
+  const currentBalance = invoices
+    .filter((invoice: any) => (invoice.remaining_due || 0) > 0)
+    .reduce((sum: number, invoice: any) => sum + (invoice.remaining_due || 0), 0) / 100;
   
   const services = account.account_services?.entities || [];
   const billingPlan = services.length > 0 ? services[0].service?.name || 'Unknown' : 'Unknown';
@@ -86,7 +88,7 @@ export function mapAccountFinancialsResponse(data: any, accountId: string): Cust
     isDelinquent: isDelinquent,
     lastPayment: lastPayment ? {
       date: lastPayment.created_at,
-      amount: lastPayment.amount,
+      amount: (lastPayment.amount || 0) / 100,
       method: lastPayment.payment_type,
       reference: lastPayment.reference,
     } : null,
@@ -135,11 +137,11 @@ export function mapAccountInventoryResponse(data: any, accountId: string): Custo
     throw new Error('Account not found');
   }
 
-  const accountServices = account.account_services?.entities || [];
+  const addresses = account.addresses?.entities || [];
   const inventory: any[] = [];
 
-  accountServices.forEach((service: any) => {
-    const inventoryItems = service.inventory_items?.entities || [];
+  addresses.forEach((address: any) => {
+    const inventoryItems = address.inventory_items?.entities || [];
     inventoryItems.forEach((item: any) => {
       const model = item.inventory_model;
       let status = 'unknown';

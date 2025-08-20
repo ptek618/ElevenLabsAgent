@@ -367,7 +367,7 @@ export class SonarClient {
           entities {
             id
             name
-            account_services {
+            addresses {
               entities {
                 id
                 inventory_items {
