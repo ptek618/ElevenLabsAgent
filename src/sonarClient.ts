@@ -86,6 +86,7 @@ export class SonarClient {
     accountNumber?: string;
     address?: string;
     phone?: string;
+    email?: string;
   }): Promise<any> {
     let query: string;
     let variables: any = {};
@@ -207,6 +208,32 @@ export class SonarClient {
         }
       `;
       variables.phoneNumber = normalizePhoneForSonar(filter.phone);
+    } else if (filter.email) {
+      query = `
+        query SearchAccountsByEmail($generalSearch: String!) {
+          accounts(general_search: $generalSearch) {
+            entities {
+              id
+              name
+              addresses {
+                entities {
+                  line1
+                  line2
+                  city
+                  zip
+                  type
+                }
+              }
+              emails {
+                entities {
+                  email_address
+                }
+              }
+            }
+          }
+        }
+      `;
+      variables.generalSearch = filter.email;
     } else {
       query = `
         query SearchAccounts {
@@ -244,6 +271,14 @@ export class SonarClient {
           entities {
             id
             name
+            is_delinquent
+            account_services {
+              entities {
+                service {
+                  name
+                }
+              }
+            }
             invoices(paginator:{page:1, records_per_page:10}, sorter:[{attribute:created_at, direction:DESC}]) {
               entities {
                 id
@@ -335,10 +370,7 @@ export class SonarClient {
             account_services {
               entities {
                 id
-                service {
-                  name
-                }
-                inventory_items(paginator:{page:1, records_per_page:50}) {
+                inventory_items {
                   entities {
                     id
                     inventory_model {

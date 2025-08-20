@@ -44,11 +44,12 @@ app.get('/healthz', healthCheck);
 
 const cleanSearchRequest = (req: any, res: any, next: any) => {
   if (req.body && typeof req.body === 'object') {
-    const { name, accountNumber, address, phone } = req.body;
+    const { name, accountNumber, address, phone, email } = req.body;
     const fields = [
       { key: 'accountNumber', value: accountNumber },
       { key: 'name', value: name },
       { key: 'phone', value: phone },
+      { key: 'email', value: email },
       { key: 'address', value: address }
     ].filter(field => field.value !== undefined && field.value !== null && field.value !== '');
 
@@ -64,7 +65,7 @@ app.post('/customer/search', validateApiKey, cleanSearchRequest, async (req, res
   try {
     const validatedData = customerSearchSchema.parse(req.body);
     
-    let searchType: 'name' | 'accountNumber' | 'address' | 'phone';
+    let searchType: 'name' | 'accountNumber' | 'address' | 'phone' | 'email';
     let searchValue: string;
     let filter: any = {};
 
@@ -84,11 +85,15 @@ app.post('/customer/search', validateApiKey, cleanSearchRequest, async (req, res
       searchType = 'phone';
       searchValue = normalizePhoneToE164(validatedData.phone);
       filter.phone = searchValue;
+    } else if (validatedData.email) {
+      searchType = 'email';
+      searchValue = validatedData.email;
+      filter.email = searchValue;
     } else {
       const error: ApiError = {
         ok: false,
         code: 'INVALID_REQUEST',
-        message: 'Exactly one search field must be provided',
+        message: 'Exactly one search field must be provided (name, accountNumber, address, phone, or email)',
       };
       return res.status(400).json(error);
     }

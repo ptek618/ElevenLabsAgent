@@ -9,7 +9,7 @@ import {
 
 export function mapAccountSearchResponse(
   data: any,
-  searchType: 'name' | 'accountNumber' | 'address' | 'phone'
+  searchType: 'name' | 'accountNumber' | 'address' | 'phone' | 'email'
 ): CustomerSearchResponse {
   let accounts: any[] = [];
   
@@ -39,6 +39,7 @@ export function mapAccountSearchResponse(
     address: account.addresses?.entities?.[0] ? 
       `${account.addresses.entities[0].line1}, ${account.addresses.entities[0].city} ${account.addresses.entities[0].zip}` : '',
     phone: '',
+    email: account.emails?.entities?.[0]?.email_address || '',
   }));
 
   return {
@@ -68,9 +69,12 @@ export function mapAccountFinancialsResponse(data: any, accountId: string): Cust
   }
 
   const invoices = account.invoices?.entities || [];
-  const currentBalance = invoices.reduce((total: number, invoice: any) => {
-    return total + (invoice.remaining_due || 0);
-  }, 0);
+  const currentBalance = invoices.reduce((sum: number, invoice: any) => sum + (invoice.total_debits || 0), 0);
+  
+  const services = account.account_services?.entities || [];
+  const billingPlan = services.length > 0 ? services[0].service?.name || 'Unknown' : 'Unknown';
+  
+  const isDelinquent = account.is_delinquent || false;
 
   const payments = account.payments?.entities || [];
   const lastPayment = payments.length > 0 ? payments[0] : null;
@@ -78,6 +82,8 @@ export function mapAccountFinancialsResponse(data: any, accountId: string): Cust
   return {
     accountId: account.id,
     currentBalance: currentBalance,
+    billingPlan: billingPlan,
+    isDelinquent: isDelinquent,
     lastPayment: lastPayment ? {
       date: lastPayment.created_at,
       amount: lastPayment.amount,
@@ -129,10 +135,10 @@ export function mapAccountInventoryResponse(data: any, accountId: string): Custo
     throw new Error('Account not found');
   }
 
-  const services = account.account_services?.entities || [];
+  const accountServices = account.account_services?.entities || [];
   const inventory: any[] = [];
 
-  services.forEach((service: any) => {
+  accountServices.forEach((service: any) => {
     const inventoryItems = service.inventory_items?.entities || [];
     inventoryItems.forEach((item: any) => {
       const model = item.inventory_model;
@@ -148,11 +154,12 @@ export function mapAccountInventoryResponse(data: any, accountId: string): Custo
       
       inventory.push({
         id: item.id,
-        type: service.service?.name || 'Unknown',
+        type: model?.device_type || 'Unknown',
         model: model?.model_name || model?.name || 'N/A',
         mac: 'N/A',
         serial: 'N/A',
         status: status,
+        icmpDeviceStatus: item.icmp_device_status || 'UNKNOWN',
       });
     });
   });

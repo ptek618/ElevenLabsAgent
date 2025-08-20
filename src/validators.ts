@@ -5,14 +5,15 @@ export const customerSearchSchema = z.object({
   accountNumber: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
+  email: z.string().optional(),
 }).refine(
   (data) => {
-    const fields = [data.name, data.accountNumber, data.address, data.phone];
+    const fields = [data.name, data.accountNumber, data.address, data.phone, data.email];
     const definedFields = fields.filter(field => field !== undefined);
     return definedFields.length === 1;
   },
   {
-    message: "Exactly one of name, accountNumber, address, or phone must be provided",
+    message: "Exactly one of name, accountNumber, address, phone, or email must be provided",
   }
 );
 
