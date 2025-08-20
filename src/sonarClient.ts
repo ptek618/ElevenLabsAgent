@@ -329,6 +329,39 @@ export class SonarClient {
     return this.makeRequest(query, { accountId: parseInt(accountId) });
   }
 
+  private getCategoryGroupId(category?: string): number {
+    const categoryGroupMap: { [key: string]: number } = {
+      'billing': 52,
+      'billing issues': 52,
+      'payment': 52,
+      'invoice': 52,
+      'construction': 50,
+      'construction issues': 50,
+      'install': 50,
+      'installation': 50,
+      'no internet': 51,
+      'internet': 51,
+      'connectivity': 51,
+      'connection': 51,
+      'outage': 51,
+      'new sign up': 54,
+      'signup': 54,
+      'new customer': 54,
+      'registration': 54,
+      'general': 49,
+      'general support': 49,
+      'support': 49,
+      'other': 49
+    };
+
+    if (!category) {
+      return 49;
+    }
+
+    const normalizedCategory = category.toLowerCase().trim();
+    return categoryGroupMap[normalizedCategory] || 49;
+  }
+
   async createTicket(input: {
     accountId: string;
     title: string;
@@ -347,6 +380,8 @@ export class SonarClient {
       }
     `;
 
+    const ticketGroupId = this.getCategoryGroupId(input.category);
+
     const mutationInput = {
       subject: input.title,
       description: input.body,
@@ -354,7 +389,8 @@ export class SonarClient {
       ticketable_id: parseInt(input.accountId),
       priority: input.priority ? input.priority.toUpperCase() : 'MEDIUM',
       status: 'OPEN',
-      user_id: 1
+      user_id: 1,
+      ticket_group_id: ticketGroupId
     };
 
     return this.makeRequest(mutation, { input: mutationInput });

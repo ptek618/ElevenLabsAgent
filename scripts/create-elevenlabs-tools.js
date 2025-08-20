@@ -77,7 +77,7 @@ const tools = [
   },
   {
     name: 'ticket_create',
-    description: `Create a new support ticket for a ProTek customer. Automatically assigns MEDIUM priority and 'AI Generated - General Support' ticket group. (Updated: ${TIMESTAMP})`,
+    description: `Create a new support ticket for a ProTek customer. Supports dynamic group assignment based on category. Defaults to MEDIUM priority and 'AI Generated - General Support' group. (Updated: ${TIMESTAMP})`,
     endpoint: '/ticket/create',
     assignments: [
       { source: 'response', dynamic_variable: 'ticket_id', value_path: 'ticketId' },
@@ -86,14 +86,19 @@ const tools = [
     ],
     request_body_schema: {
       type: 'object',
-      description: 'Create a new support ticket for a customer account with title and description.',
+      description: 'Create a new support ticket for a customer account with title and description. The category determines which ticket group the ticket is assigned to.',
       required: ['accountId', 'title', 'body'],
       properties: {
         accountId: { type: 'string', description: 'Customer account ID (numeric string, e.g. "9446")' },
         title: { type: 'string', description: 'Ticket title/subject line describing the issue' },
         body: { type: 'string', description: 'Detailed description of the issue or request' },
-        priority: { type: 'string', description: 'Ticket priority level (low, medium, high, urgent)' },
-        category: { type: 'string', description: 'Ticket category for classification' }
+        priority: { type: 'string', description: 'Ticket priority level (low, medium, high, urgent)', default: 'medium' },
+        category: { 
+          type: 'string', 
+          description: 'Ticket category for automatic group assignment. Options: "billing" (billing issues), "construction" (installation/construction), "no internet" (connectivity issues), "new sign up" (new customer registration), "general" (general support - default). If not specified or unrecognized, defaults to general support.',
+          enum: ['billing', 'construction', 'no internet', 'new sign up', 'general'],
+          default: 'general'
+        }
       }
     }
   },
