@@ -448,6 +448,30 @@ curl -X POST https://elevenlabs-sonar-tools.fly.dev/customer/search \
 - **Input Validation**: Use Zod schemas for all endpoints
 - **Error Handling**: Return generic errors to prevent information leakage
 
+### IP Whitelisting
+
+The service implements comprehensive IP whitelisting to restrict access to authorized sources only:
+
+**ElevenLabs Webhook IPs:**
+- US (Default): 34.67.146.145, 34.59.11.47
+- EU: 35.204.38.71, 34.147.113.54
+- Asia: 35.185.187.110, 35.247.157.189
+
+**Sonar V2 Egress IPs:**
+- US Azure: 20.221.112.37, 20.221.114.13, 52.158.209.86
+- Canada Azure: 20.104.33.4
+
+**Sonar Support Access IPs:**
+- Hardware/Client Equipment: 52.185.28.83
+- Instance Access/Application Firewall: 20.84.183.202
+
+**Looker SFTP IPs:**
+- 34.200.64.243, 54.157.231.76, 18.206.32.254
+
+**Development Access:**
+- Local development (127.0.0.1, ::1, localhost) is allowed in non-production environments
+- Health check endpoint (/healthz) is always accessible for monitoring
+
 ## Future Enhancements
 
 1. **Caching**: Add Redis for frequently accessed customer data

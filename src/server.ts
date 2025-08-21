@@ -33,12 +33,60 @@ const sonarClient = new SonarClient(
   process.env.SONAR_API_KEY!
 );
 
+const WHITELISTED_IPS = [
+  '34.67.146.145',   // US (Default)
+  '34.59.11.47',     // US (Default)
+  '35.204.38.71',    // EU
+  '34.147.113.54',   // EU
+  '35.185.187.110',  // Asia
+  '35.247.157.189',  // Asia
+  '20.221.112.37',   // US Azure egress
+  '20.221.114.13',   // US Azure egress
+  '52.158.209.86',   // US Azure egress
+  '20.104.33.4',     // Canada Azure ingress/egress
+  '52.185.28.83',    // Hardware/Client Equipment access
+  '20.84.183.202',   // Instance Access/Application Firewall
+  '34.200.64.243',
+  '54.157.231.76',
+  '18.206.32.254'
+];
+
+const ipWhitelist = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (req.path === '/healthz') {
+    return next();
+  }
+
+  const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+  const forwardedFor = req.headers['x-forwarded-for'] as string;
+  
+  const realIP = forwardedFor ? forwardedFor.split(',')[0].trim() : clientIP;
+  
+  if (process.env.NODE_ENV !== 'production' && 
+      (realIP === '127.0.0.1' || realIP === '::1' || realIP?.includes('localhost'))) {
+    return next();
+  }
+  
+  if (realIP && WHITELISTED_IPS.includes(realIP)) {
+    return next();
+  }
+  
+  console.warn(`Blocked request from unauthorized IP: ${realIP}`);
+  return res.status(403).json({ 
+    ok: false, 
+    code: 'FORBIDDEN', 
+    message: 'Access denied: IP not whitelisted' 
+  });
+};
+
 app.use(helmet());
 app.use(cors());
+app.set('trust proxy', true); // Trust proxy for accurate IP detection
 app.use(morgan('combined', {
   skip: (req: any) => req.url === '/healthz'
 }));
 app.use(express.json({ limit: '10mb' }));
+
+app.use(ipWhitelist);
 
 app.get('/healthz', healthCheck);
 
