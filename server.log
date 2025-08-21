@@ -1,0 +1,14 @@
+
+> elevenlabs-sonar-tools@1.0.0 start
+> node dist/server.js
+
+[dotenv@17.2.1] injecting env (6) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+(node:32027) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Server running on port 8080
+::ffff:127.0.0.1 - - [20/Aug/2025:13:42:39 +0000] "POST /ticket/create HTTP/1.1" 200 70 "-" "curl/7.81.0"
+::ffff:127.0.0.1 - - [20/Aug/2025:13:53:24 +0000] "POST /customer/inventory HTTP/1.1" 200 35 "-" "curl/7.81.0"
+::ffff:127.0.0.1 - - [20/Aug/2025:13:55:18 +0000] "POST /customer/search HTTP/1.1" 200 67 "-" "curl/7.81.0"
+::ffff:127.0.0.1 - - [20/Aug/2025:13:55:18 +0000] "POST /customer/financials HTTP/1.1" 200 206 "-" "curl/7.81.0"
+::ffff:127.0.0.1 - - [20/Aug/2025:13:55:19 +0000] "POST /customer/financials HTTP/1.1" 200 196 "-" "curl/7.81.0"
+::ffff:127.0.0.1 - - [20/Aug/2025:13:55:19 +0000] "POST /customer/inventory HTTP/1.1" 200 35 "-" "curl/7.81.0"
