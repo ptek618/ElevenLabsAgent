@@ -1,0 +1,16 @@
+overwrite: true
+schema: 
+  - ${SONAR_API_URL}:
+      headers:
+        Authorization: Bearer ${SONAR_API_KEY}
+documents: "src/**/*.graphql"
+generates:
+  src/generated/graphql.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      scalars:
+        DateTime: string
+        Date: string
+        JSON: any

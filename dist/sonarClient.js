@@ -1,0 +1,424 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SonarClient = void 0;
+const node_fetch_1 = __importDefault(require("node-fetch"));
+const utils_1 = require("./utils");
+class SonarClient {
+    constructor(apiUrl, apiKey) {
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+        const isTest = process.env.NODE_ENV === 'test';
+        this.rateLimiter = new utils_1.TokenBucket(isTest ? 1000 : 5, isTest ? 1000 : 5);
+    }
+    async makeRequest(query, variables, retries = 2) {
+        if (!this.rateLimiter.consume()) {
+            throw new Error('Rate limit exceeded');
+        }
+        const body = JSON.stringify({ query, variables });
+        try {
+            const response = await (0, node_fetch_1.default)(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body,
+                timeout: 30000,
+            });
+            if (response.status === 429 && retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return this.makeRequest(query, variables, retries - 1);
+            }
+            if (response.status === 401) {
+                const error = {
+                    ok: false,
+                    code: 'SONAR_AUTH_ERROR',
+                    message: 'Invalid Sonar API key',
+                };
+                throw error;
+            }
+            if (response.status !== 200) {
+                const error = {
+                    ok: false,
+                    code: 'SONAR_API_ERROR',
+                    message: `Sonar API returned status ${response.status}`,
+                };
+                throw error;
+            }
+            const responseBody = await response.json();
+            if (responseBody.errors) {
+                const error = {
+                    ok: false,
+                    code: 'SONAR_GRAPHQL_ERROR',
+                    message: 'GraphQL errors in response',
+                    details: responseBody.errors,
+                };
+                throw error;
+            }
+            return responseBody.data;
+        }
+        catch (error) {
+            if (error instanceof Error && error.message.includes('timeout')) {
+                const timeoutError = {
+                    ok: false,
+                    code: 'SONAR_TIMEOUT',
+                    message: 'Request to Sonar API timed out',
+                };
+                throw timeoutError;
+            }
+            throw error;
+        }
+    }
+    async searchAccounts(filter) {
+        let query;
+        let variables = {};
+        if (filter.accountNumber) {
+            query = `
+        query SearchAccountsById($accountId: Int64Bit!) {
+          accounts(id: $accountId) {
+            entities {
+              id
+              name
+              addresses {
+                entities {
+                  line1
+                  line2
+                  city
+                  zip
+                  type
+                }
+              }
+              emails {
+                entities {
+                  email_address
+                }
+              }
+            }
+          }
+        }
+      `;
+            variables.accountId = parseInt(filter.accountNumber);
+        }
+        else if (filter.name) {
+            query = `
+        query SearchAccountsByName($generalSearch: String!) {
+          accounts(general_search: $generalSearch) {
+            entities {
+              id
+              name
+              addresses {
+                entities {
+                  line1
+                  line2
+                  city
+                  zip
+                  type
+                }
+              }
+              emails {
+                entities {
+                  email_address
+                }
+              }
+            }
+          }
+        }
+      `;
+            variables.generalSearch = filter.name;
+        }
+        else if (filter.address) {
+            query = `
+        query SearchAccountsByAddress($generalSearch: String!) {
+          accounts(general_search: $generalSearch) {
+            entities {
+              id
+              name
+              addresses {
+                entities {
+                  line1
+                  line2
+                  city
+                  zip
+                  type
+                }
+              }
+              emails {
+                entities {
+                  email_address
+                }
+              }
+            }
+          }
+        }
+      `;
+            variables.generalSearch = filter.address;
+        }
+        else if (filter.phone) {
+            query = `
+        query SearchAccountsByPhone($phoneNumber: String!) {
+          phone_numbers(general_search: $phoneNumber) {
+            entities {
+              id
+              number
+              number_formatted
+              contact {
+                id
+                name
+                contactable_id
+                contactable_type
+                contactable {
+                  ... on Account {
+                    id
+                    name
+                    addresses {
+                      entities {
+                        line1
+                        line2
+                        city
+                        zip
+                        type
+                      }
+                    }
+                    emails {
+                      entities {
+                        email_address
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+            variables.phoneNumber = (0, utils_1.normalizePhoneForSonar)(filter.phone);
+        }
+        else if (filter.email) {
+            query = `
+        query SearchAccountsByEmail($generalSearch: String!) {
+          accounts(general_search: $generalSearch) {
+            entities {
+              id
+              name
+              addresses {
+                entities {
+                  line1
+                  line2
+                  city
+                  zip
+                  type
+                }
+              }
+              emails {
+                entities {
+                  email_address
+                }
+              }
+            }
+          }
+        }
+      `;
+            variables.generalSearch = filter.email;
+        }
+        else {
+            query = `
+        query SearchAccounts {
+          accounts {
+            entities {
+              id
+              name
+              addresses {
+                entities {
+                  line1
+                  line2
+                  city
+                  zip
+                  type
+                }
+              }
+              emails {
+                entities {
+                  email_address
+                }
+              }
+            }
+          }
+        }
+      `;
+        }
+        return this.makeRequest(query, Object.keys(variables).length > 0 ? variables : undefined);
+    }
+    async getAccountFinancials(accountId) {
+        const query = `
+      query GetAccountFinancials($accountId: Int64Bit!) {
+        accounts(id: $accountId) {
+          entities {
+            id
+            name
+            is_delinquent
+            account_services {
+              entities {
+                service {
+                  name
+                }
+              }
+            }
+            invoices(paginator:{page:1, records_per_page:10}, sorter:[{attribute:created_at, direction:DESC}]) {
+              entities {
+                id
+                remaining_due
+                total_debits
+                total_taxes
+                created_at
+              }
+            }
+            payments(paginator:{page:1, records_per_page:5}, sorter:[{attribute:created_at, direction:DESC}]) {
+              entities {
+                id
+                amount
+                created_at
+                payment_type
+                reference
+              }
+            }
+          }
+        }
+      }
+    `;
+        return this.makeRequest(query, { accountId: parseInt(accountId) });
+    }
+    async getAccountNotes(accountId, limit = 10, since) {
+        const query = `
+      query GetAccountNotes($accountId: Int64Bit!) {
+        accounts(id: $accountId) {
+          entities {
+            id
+            notes {
+              entities {
+                id
+                created_at
+                message
+                user {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+        return this.makeRequest(query, { accountId: parseInt(accountId) });
+    }
+    getCategoryGroupId(category) {
+        const categoryGroupMap = {
+            'billing': 52,
+            'billing issues': 52,
+            'payment': 52,
+            'invoice': 52,
+            'construction': 50,
+            'construction issues': 50,
+            'install': 50,
+            'installation': 50,
+            'no internet': 51,
+            'internet': 51,
+            'connectivity': 51,
+            'connection': 51,
+            'outage': 51,
+            'new sign up': 54,
+            'signup': 54,
+            'new customer': 54,
+            'registration': 54,
+            'general': 49,
+            'general support': 49,
+            'support': 49,
+            'other': 49
+        };
+        if (!category) {
+            return 49;
+        }
+        const normalizedCategory = category.toLowerCase().trim();
+        return categoryGroupMap[normalizedCategory] || 49;
+    }
+    async createTicket(input) {
+        const mutation = `
+      mutation CreateInternalTicket($input: CreateInternalTicketMutationInput!) {
+        createInternalTicket(input: $input) {
+          id
+          sonar_unique_id
+          status
+          created_at
+        }
+      }
+    `;
+        const ticketGroupId = this.getCategoryGroupId(input.category);
+        const mutationInput = {
+            subject: input.title,
+            description: input.body,
+            ticketable_type: 'Account',
+            ticketable_id: parseInt(input.accountId),
+            priority: input.priority ? input.priority.toUpperCase() : 'MEDIUM',
+            status: 'OPEN',
+            user_id: 1,
+            ticket_group_id: ticketGroupId
+        };
+        return this.makeRequest(mutation, { input: mutationInput });
+    }
+    async getAccountInventory(accountId) {
+        const query = `
+      query GetAccountInventory($accountId: Int64Bit!) {
+        accounts(id: $accountId) {
+          entities {
+            id
+            name
+            addresses {
+              entities {
+                id
+                inventory_items {
+                  entities {
+                    id
+                    inventory_model {
+                      id
+                      name
+                      model_name
+                      device_type
+                      manufacturer {
+                        name
+                      }
+                    }
+                    overall_status
+                    icmp_device_status
+                    snmp_device_status
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+        return this.makeRequest(query, { accountId: parseInt(accountId) });
+    }
+    async introspectSchema() {
+        const query = `
+      query IntrospectionQuery {
+        __schema {
+          types {
+            name
+            fields {
+              name
+              type {
+                name
+              }
+            }
+          }
+        }
+      }
+    `;
+        return this.makeRequest(query);
+    }
+}
+exports.SonarClient = SonarClient;
+//# sourceMappingURL=sonarClient.js.map
