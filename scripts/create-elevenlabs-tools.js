@@ -22,7 +22,8 @@ const tools = [
       { source: 'response', dynamic_variable: 'customer_name', value_path: 'customer.name' },
       { source: 'response', dynamic_variable: 'account_number', value_path: 'customer.accountNumber' },
       { source: 'response', dynamic_variable: 'account_id', value_path: 'customer.id' },
-      { source: 'response', dynamic_variable: 'customer_email', value_path: 'customer.emails.0' }
+      { source: 'response', dynamic_variable: 'customer_email', value_path: 'customer.emails.0' },
+      { source: 'response', dynamic_variable: 'customer_phone', value_path: 'customer.primaryPhone' }
     ],
     request_body_schema: {
       type: 'object',

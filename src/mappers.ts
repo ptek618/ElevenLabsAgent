@@ -12,9 +12,11 @@ export function mapAccountSearchResponse(
   searchType: 'name' | 'accountNumber' | 'address' | 'phone' | 'email'
 ): CustomerSearchResponse {
   let accounts: any[] = [];
+  let phoneNumberData: any = null;
   
   if (searchType === 'phone') {
     const phoneNumbers = data?.phone_numbers?.entities || [];
+    phoneNumberData = phoneNumbers.find((pn: any) => pn.contact?.contactable_type === 'Account' && pn.contact?.contactable);
     accounts = phoneNumbers
       .filter((pn: any) => pn.contact?.contactable_type === 'Account' && pn.contact?.contactable)
       .map((pn: any) => pn.contact.contactable);
@@ -32,6 +34,12 @@ export function mapAccountSearchResponse(
   }
 
   const primaryAccount = accounts[0];
+  
+  let primaryPhone = '';
+  if (searchType === 'phone' && phoneNumberData) {
+    primaryPhone = phoneNumberData.number_formatted || phoneNumberData.number || '';
+  }
+  
   const candidates = accounts.slice(1).map((account: any) => ({
     id: account.id,
     name: account.name,
@@ -49,7 +57,7 @@ export function mapAccountSearchResponse(
       id: primaryAccount.id,
       accountNumber: primaryAccount.id,
       name: primaryAccount.name,
-      primaryPhone: '',
+      primaryPhone: primaryPhone,
       emails: primaryAccount.emails?.entities?.map((e: any) => e.email_address) || [],
       serviceAddress: primaryAccount.addresses?.entities?.[0] ? 
         `${primaryAccount.addresses.entities[0].line1}, ${primaryAccount.addresses.entities[0].city} ${primaryAccount.addresses.entities[0].zip}` : '',
