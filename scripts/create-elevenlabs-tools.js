@@ -120,6 +120,39 @@ const tools = [
         accountId: { type: 'string', description: 'Customer account ID (numeric string, e.g. "9446")' }
       }
     }
+  },
+  {
+    name: 'wifi_credentials_from_install',
+    description: `Fetch Wi-Fi SSID and WPA key from the most recent fiber install (Job Type ID 2) for a given ProTek customer. (Updated: ${TIMESTAMP})`,
+    endpoint: '/wifi/credentials',
+    assignments: [
+      { source: 'response', dynamic_variable: 'wifi_ssid', value_path: 'ssid' },
+      { source: 'response', dynamic_variable: 'wifi_wpa_key', value_path: 'wpa_key' },
+      { source: 'response', dynamic_variable: 'install_job_id', value_path: 'job_id' },
+      { source: 'response', dynamic_variable: 'install_job_date', value_path: 'job_datetime' }
+    ],
+    request_body_schema: {
+      type: 'object',
+      description: 'Provide at least one lookup field to find the customer account.',
+      properties: {
+        account_id: { 
+          type: 'string', 
+          description: 'ProTek account ID if known' 
+        },
+        phone: { 
+          type: 'string', 
+          description: 'Customer phone number (E.164 preferred)' 
+        },
+        email: { 
+          type: 'string', 
+          description: 'Customer email address' 
+        },
+        name: { 
+          type: 'string', 
+          description: 'Customer full name' 
+        }
+      }
+    }
   }
 ];
 

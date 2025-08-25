@@ -96,6 +96,35 @@ export interface CustomerInventoryResponse {
   }>;
 }
 
+export interface WifiCredentialsRequest {
+  account_id?: string;
+  phone?: string;
+  email?: string;
+  name?: string;
+}
+
+export interface WifiCredentialsResponse {
+  found: boolean;
+  account_id?: string;
+  job_id?: string;
+  job_type_id?: number;
+  job_datetime?: string;
+  ssid?: string;
+  wpa_key?: string;
+  source_fields?: Array<{
+    key: string;
+    value: string;
+  }>;
+  parsing_method?: string;
+  notes?: string;
+  reason?: 'no_install_job' | 'no_custom_fields' | 'not_found' | 'ambiguous_account' | 'auth_error' | 'graphql_error';
+  details?: string;
+  candidates?: Array<{
+    account_id: string;
+    name: string;
+  }>;
+}
+
 export interface ApiError {
   ok: false;
   code: string;

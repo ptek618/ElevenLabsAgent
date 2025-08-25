@@ -38,3 +38,19 @@ export const ticketCreateSchema = z.object({
 export const customerInventorySchema = z.object({
   accountId: z.string().min(1, "Account ID is required"),
 });
+
+export const wifiCredentialsSchema = z.object({
+  account_id: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  name: z.string().optional(),
+}).refine(
+  (data) => {
+    const fields = [data.account_id, data.phone, data.email, data.name];
+    const definedFields = fields.filter(field => field !== undefined && field !== '');
+    return definedFields.length >= 1;
+  },
+  {
+    message: "At least one of account_id, phone, email, or name must be provided",
+  }
+);

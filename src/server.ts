@@ -13,6 +13,7 @@ import {
   customerNotesSchema,
   ticketCreateSchema,
   customerInventorySchema,
+  wifiCredentialsSchema,
 } from './validators';
 import {
   mapAccountSearchResponse,
@@ -20,6 +21,7 @@ import {
   mapAccountNotesResponse,
   mapTicketCreateResponse,
   mapAccountInventoryResponse,
+  mapAccountInstallJobsResponse,
 } from './mappers';
 import { ApiError } from './types';
 
@@ -62,7 +64,7 @@ const ipWhitelist = (req: express.Request, res: express.Response, next: express.
   const realIP = forwardedFor ? forwardedFor.split(',')[0].trim() : clientIP;
   
   if (process.env.NODE_ENV !== 'production' && 
-      (realIP === '127.0.0.1' || realIP === '::1' || realIP?.includes('localhost'))) {
+      (realIP === '127.0.0.1' || realIP === '::1' || realIP === '::ffff:127.0.0.1' || realIP?.includes('localhost'))) {
     return next();
   }
   
@@ -266,6 +268,102 @@ app.post('/customer/inventory', validateApiKey, async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('Customer inventory error:', error);
+    
+    if (error && typeof error === 'object' && 'ok' in error && 'code' in error) {
+      const apiError = error as ApiError;
+      return res.status(apiError.code === 'SONAR_AUTH_ERROR' ? 401 : 500).json(apiError);
+    }
+    
+    const apiError: ApiError = {
+      ok: false,
+      code: 'INTERNAL_ERROR',
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+    res.status(500).json(apiError);
+  }
+});
+
+app.post('/wifi/credentials', validateApiKey, async (req, res) => {
+  try {
+    const validatedData = wifiCredentialsSchema.parse(req.body);
+    
+    let accountId: string | undefined;
+    
+    if (validatedData.account_id) {
+      accountId = validatedData.account_id;
+    } else {
+      let filter: any = {};
+      
+      if (validatedData.phone) {
+        filter.phone = normalizePhoneToE164(validatedData.phone);
+      } else if (validatedData.email) {
+        filter.email = validatedData.email;
+      } else if (validatedData.name) {
+        filter.name = validatedData.name;
+      }
+      
+      try {
+        const searchData = await sonarClient.searchAccounts(filter);
+        const searchResponse = mapAccountSearchResponse(
+          searchData, 
+          validatedData.phone ? 'phone' : validatedData.email ? 'email' : 'name'
+        );
+        
+        if (!searchResponse.customer) {
+          return res.json({
+            found: false,
+            reason: 'not_found',
+            details: 'No account found matching the provided criteria'
+          });
+        }
+        
+        if (searchResponse.candidates.length > 0) {
+          return res.json({
+            found: false,
+            reason: 'ambiguous_account',
+            details: 'Multiple accounts found matching the criteria',
+            candidates: searchResponse.candidates.map(c => ({
+              account_id: c.id,
+              name: c.name
+            }))
+          });
+        }
+        
+        accountId = searchResponse.customer.id;
+      } catch (searchError) {
+        console.error('Account search error:', searchError);
+        return res.json({
+          found: false,
+          reason: 'graphql_error',
+          details: 'Error searching for account'
+        });
+      }
+    }
+    
+    if (!accountId) {
+      return res.json({
+        found: false,
+        reason: 'not_found',
+        details: 'Could not resolve account ID'
+      });
+    }
+    
+    const data = await sonarClient.getAccountInstallJobs(accountId);
+    const response = mapAccountInstallJobsResponse(data, accountId);
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Wi-Fi credentials error:', error);
+    
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      const apiError: ApiError = {
+        ok: false,
+        code: 'INVALID_REQUEST',
+        message: 'Validation failed',
+        details: (error as any).errors,
+      };
+      return res.status(400).json(apiError);
+    }
     
     if (error && typeof error === 'object' && 'ok' in error && 'code' in error) {
       const apiError = error as ApiError;

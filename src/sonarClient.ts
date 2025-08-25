@@ -433,6 +433,42 @@ export class SonarClient {
     return this.makeRequest(query, { accountId: parseInt(accountId) });
   }
 
+  async getAccountInstallJobs(accountId: string): Promise<any> {
+    const query = `
+      query GetAccountInstallJobs($accountId: Int64Bit!) {
+        accounts(id: $accountId) {
+          entities {
+            id
+            name
+            jobs(paginator: {page: 1, records_per_page: 50}, sorter: [{attribute: created_at, direction: DESC}]) {
+              entities {
+                id
+                created_at
+                updated_at
+                job_type {
+                  id
+                  name
+                }
+                custom_field_data {
+                  entities {
+                    id
+                    value
+                    custom_field {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    return this.makeRequest(query, { accountId: parseInt(accountId) });
+  }
+
   async introspectSchema(): Promise<any> {
     const query = `
       query IntrospectionQuery {

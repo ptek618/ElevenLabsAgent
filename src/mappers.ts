@@ -1,10 +1,11 @@
-import { normalizePhoneToE164, deriveDeviceStatus } from './utils';
+import { normalizePhoneToE164, deriveDeviceStatus, parseWifiCredentials } from './utils';
 import {
   CustomerSearchResponse,
   CustomerFinancialsResponse,
   CustomerNotesResponse,
   TicketCreateResponse,
   CustomerInventoryResponse,
+  WifiCredentialsResponse,
 } from './types';
 
 export function mapAccountSearchResponse(
@@ -177,5 +178,84 @@ export function mapAccountInventoryResponse(data: any, accountId: string): Custo
   return {
     accountId: account.id,
     inventory,
+  };
+}
+
+export function mapAccountInstallJobsResponse(data: any, accountId: string): WifiCredentialsResponse {
+  const accounts = data?.accounts?.entities || [];
+  const account = accounts.find((acc: any) => acc.id === accountId) || accounts[0];
+  
+  if (!account) {
+    return {
+      found: false,
+      reason: 'not_found',
+      details: 'Account not found'
+    };
+  }
+
+  const jobs = account.jobs?.entities || [];
+  
+  const installJobs = jobs.filter((job: any) => job.job_type?.id === 2 || job.job_type?.id === '2');
+  
+  if (installJobs.length === 0) {
+    return {
+      found: false,
+      reason: 'no_install_job',
+      details: 'No fiber install jobs (Job Type ID 2) found for this account'
+    };
+  }
+
+  const sortedJobs = installJobs.sort((a: any, b: any) => {
+    const getJobDate = (job: any) => {
+      return job.completed_at || job.started_at || job.scheduled_at;
+    };
+    
+    const dateA = new Date(getJobDate(a)).getTime();
+    const dateB = new Date(getJobDate(b)).getTime();
+    
+    return dateB - dateA; // Most recent first
+  });
+
+  const mostRecentJob = sortedJobs[0];
+  
+  const customFieldDataEntities = mostRecentJob.custom_field_data?.entities || [];
+  
+  const customFieldData = customFieldDataEntities.map((entity: any) => ({
+    key: entity.custom_field?.name || 'unknown',
+    value: entity.value || ''
+  }));
+  
+  const allCustomData = {
+    custom_field_data: customFieldData,
+    custom_field_data_1: null,
+    custom_field_data_2: null
+  };
+
+  const parsed = parseWifiCredentials(allCustomData);
+  
+  if (!parsed.ssid && !parsed.wpa_key) {
+    return {
+      found: false,
+      reason: 'no_custom_fields',
+      details: 'No Wi-Fi credentials found in custom field data',
+      account_id: account.id,
+      job_id: mostRecentJob.id,
+      job_type_id: 2,
+      job_datetime: mostRecentJob.completed_at || mostRecentJob.started_at || mostRecentJob.scheduled_at,
+      source_fields: parsed.source_fields
+    };
+  }
+
+  return {
+    found: true,
+    account_id: account.id,
+    job_id: mostRecentJob.id,
+    job_type_id: 2,
+    job_datetime: mostRecentJob.completed_at || mostRecentJob.started_at || mostRecentJob.scheduled_at,
+    ssid: parsed.ssid,
+    wpa_key: parsed.wpa_key,
+    source_fields: parsed.source_fields,
+    parsing_method: parsed.parsing_method,
+    notes: 'Parsed from latest Job Type 2; delimiters supported (: , - |)'
   };
 }
