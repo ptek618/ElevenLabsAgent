@@ -34,14 +34,24 @@ export function mapAccountSearchResponse(
     };
   }
 
-  const primaryAccount = accounts[0];
   
   let primaryPhone = '';
   if (searchType === 'phone' && phoneNumberData) {
     primaryPhone = phoneNumberData.number_formatted || phoneNumberData.number || '';
   }
   
-  const candidates = accounts.slice(1).map((account: any) => ({
+  const sortedAccounts = accounts.sort((a: any, b: any) => {
+    const statusA = a.account_status_id || a.account_status?.id || 0;
+    const statusB = b.account_status_id || b.account_status?.id || 0;
+    
+    if (statusA === 1 && statusB !== 1) return -1;
+    if (statusA !== 1 && statusB === 1) return 1;
+    return statusA - statusB;
+  });
+
+  const primaryAccount = sortedAccounts[0];
+  
+  const candidates = sortedAccounts.slice(1).map((account: any) => ({
     id: account.id,
     name: account.name,
     accountNumber: account.id,
@@ -49,6 +59,8 @@ export function mapAccountSearchResponse(
       `${account.addresses.entities[0].line1}, ${account.addresses.entities[0].city} ${account.addresses.entities[0].zip}` : '',
     phone: '',
     email: account.emails?.entities?.[0]?.email_address || '',
+    accountStatus: account.account_status_id || account.account_status?.id || 0,
+    accountStatusName: account.account_status?.name || 'Unknown',
   }));
 
   return {
@@ -64,6 +76,8 @@ export function mapAccountSearchResponse(
         `${primaryAccount.addresses.entities[0].line1}, ${primaryAccount.addresses.entities[0].city} ${primaryAccount.addresses.entities[0].zip}` : '',
       billingAddress: primaryAccount.addresses?.entities?.[0] ? 
         `${primaryAccount.addresses.entities[0].line1}, ${primaryAccount.addresses.entities[0].city} ${primaryAccount.addresses.entities[0].zip}` : '',
+      accountStatus: primaryAccount.account_status_id || primaryAccount.account_status?.id || 0,
+      accountStatusName: primaryAccount.account_status?.name || 'Unknown',
     },
     candidates,
   };

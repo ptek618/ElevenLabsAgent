@@ -17,6 +17,8 @@ export interface CustomerSearchResponse {
     emails: string[];
     serviceAddress: string;
     billingAddress: string;
+    accountStatus: number;
+    accountStatusName: string;
   } | null;
   candidates: Array<{
     id: string;
@@ -25,6 +27,8 @@ export interface CustomerSearchResponse {
     address: string;
     phone: string;
     email: string;
+    accountStatus: number;
+    accountStatusName: string;
   }>;
 }
 

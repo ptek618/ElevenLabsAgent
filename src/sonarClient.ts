@@ -98,6 +98,11 @@ export class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -124,6 +129,11 @@ export class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -150,6 +160,11 @@ export class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -186,6 +201,11 @@ export class SonarClient {
                   ... on Account {
                     id
                     name
+                    account_status_id
+                    account_status {
+                      id
+                      name
+                    }
                     addresses {
                       entities {
                         line1
@@ -215,6 +235,11 @@ export class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -241,6 +266,11 @@ export class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
