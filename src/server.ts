@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { validateApiKey } from './auth';
 import { healthCheck } from './health';
 import { SonarClient } from './sonarClient';
+import { StatusPageClient } from './statusPageClient';
 import { normalizePhoneToE164 } from './utils';
 import {
   customerSearchSchema,
@@ -14,6 +15,7 @@ import {
   ticketCreateSchema,
   customerInventorySchema,
   wifiCredentialsSchema,
+  statusPageSchema,
 } from './validators';
 import {
   mapAccountSearchResponse,
@@ -22,6 +24,7 @@ import {
   mapTicketCreateResponse,
   mapAccountInventoryResponse,
   mapAccountInstallJobsResponse,
+  mapStatusPageResponse,
 } from './mappers';
 import { ApiError } from './types';
 
@@ -34,6 +37,8 @@ const sonarClient = new SonarClient(
   process.env.SONAR_API_URL!,
   process.env.SONAR_API_KEY!
 );
+
+const statusPageClient = new StatusPageClient();
 
 const WHITELISTED_IPS = [
   '34.67.146.145',   // US (Default)
@@ -50,7 +55,8 @@ const WHITELISTED_IPS = [
   '20.84.183.202',   // Instance Access/Application Firewall
   '34.200.64.243',
   '54.157.231.76',
-  '18.206.32.254'
+  '18.206.32.254',
+  '52.183.72.253'    // Temporary testing IP
 ];
 
 const ipWhitelist = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -368,6 +374,36 @@ app.post('/wifi/credentials', validateApiKey, async (req, res) => {
     if (error && typeof error === 'object' && 'ok' in error && 'code' in error) {
       const apiError = error as ApiError;
       return res.status(apiError.code === 'SONAR_AUTH_ERROR' ? 401 : 500).json(apiError);
+    }
+    
+    const apiError: ApiError = {
+      ok: false,
+      code: 'INTERNAL_ERROR',
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+    res.status(500).json(apiError);
+  }
+});
+
+app.post('/status/recent-updates', validateApiKey, async (req, res) => {
+  try {
+    const validatedData = statusPageSchema.parse(req.body);
+    
+    const statusData = await statusPageClient.scrapeStatusPage();
+    const response = mapStatusPageResponse(statusData);
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Status page scraping error:', error);
+    
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      const apiError: ApiError = {
+        ok: false,
+        code: 'INVALID_REQUEST',
+        message: 'Validation failed',
+        details: (error as any).errors,
+      };
+      return res.status(400).json(apiError);
     }
     
     const apiError: ApiError = {

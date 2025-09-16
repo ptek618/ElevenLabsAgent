@@ -6,6 +6,7 @@ import {
   TicketCreateResponse,
   CustomerInventoryResponse,
   WifiCredentialsResponse,
+  StatusPageResponse,
 } from './types';
 
 export function mapAccountSearchResponse(
@@ -272,4 +273,8 @@ export function mapAccountInstallJobsResponse(data: any, accountId: string): Wif
     parsing_method: parsed.parsing_method,
     notes: 'Parsed from latest Job Type 2; delimiters supported (: , - |)'
   };
+}
+
+export function mapStatusPageResponse(statusData: StatusPageResponse): StatusPageResponse {
+  return statusData;
 }

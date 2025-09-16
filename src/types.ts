@@ -129,6 +129,32 @@ export interface WifiCredentialsResponse {
   }>;
 }
 
+export interface StatusPageRequest {
+}
+
+export interface StatusPageResponse {
+  overallStatus: 'operational' | 'degraded' | 'outage' | 'maintenance';
+  lastUpdated: string;
+  services: Array<{
+    name: string;
+    status: 'up' | 'down' | 'degraded';
+    uptime: string;
+  }>;
+  overallUptime: {
+    last24Hours: string;
+    last7Days: string;
+    last30Days: string;
+    last90Days: string;
+  };
+  recentUpdates: Array<{
+    date: string;
+    title: string;
+    description: string;
+    status: string;
+  }>;
+  statusPageUrl: string;
+}
+
 export interface ApiError {
   ok: false;
   code: string;

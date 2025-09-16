@@ -155,6 +155,24 @@ const tools = [
         }
       }
     }
+  },
+  {
+    name: 'status_page_updates',
+    description: `Get ProTek system status, uptime statistics, and recent updates from the status page. (Updated: ${TIMESTAMP})`,
+    endpoint: '/status/recent-updates',
+    assignments: [
+      { source: 'response', dynamic_variable: 'overall_status', value_path: 'overallStatus' },
+      { source: 'response', dynamic_variable: 'last_updated', value_path: 'lastUpdated' },
+      { source: 'response', dynamic_variable: 'uptime_24h', value_path: 'overallUptime.last24Hours' },
+      { source: 'response', dynamic_variable: 'uptime_30d', value_path: 'overallUptime.last30Days' },
+      { source: 'response', dynamic_variable: 'recent_updates_count', value_path: 'recentUpdates.length' },
+      { source: 'response', dynamic_variable: 'latest_update_title', value_path: 'recentUpdates.0.title' }
+    ],
+    request_body_schema: {
+      type: 'object',
+      description: 'Get current system status and recent updates from ProTek status page. No parameters required.',
+      properties: {}
+    }
   }
 ];
 

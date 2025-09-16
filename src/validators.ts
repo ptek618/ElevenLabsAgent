@@ -54,3 +54,6 @@ export const wifiCredentialsSchema = z.object({
     message: "At least one of account_id, phone, email, or name must be provided",
   }
 );
+
+export const statusPageSchema = z.object({
+});
