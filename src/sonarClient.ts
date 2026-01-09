@@ -392,6 +392,25 @@ export class SonarClient {
     return categoryGroupMap[normalizedCategory] || 49;
   }
 
+  private mapPriorityToEnum(priority?: string): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+    if (!priority) {
+      return 'MEDIUM';
+    }
+
+    const normalizedPriority = priority.toLowerCase().trim();
+    
+    // Map user-friendly priority names to valid Sonar TicketPriority enum values
+    const priorityMap: { [key: string]: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' } = {
+      'low': 'LOW',
+      'medium': 'MEDIUM',
+      'high': 'HIGH',
+      'critical': 'CRITICAL',
+      'urgent': 'CRITICAL',  // Map "urgent" to "CRITICAL" since Sonar doesn't have URGENT
+    };
+
+    return priorityMap[normalizedPriority] || 'MEDIUM';
+  }
+
   async createTicket(input: {
     accountId: string;
     title: string;
@@ -417,7 +436,7 @@ export class SonarClient {
       description: input.body,
       ticketable_type: 'Account',
       ticketable_id: parseInt(input.accountId),
-      priority: input.priority ? input.priority.toUpperCase() : 'MEDIUM',
+      priority: this.mapPriorityToEnum(input.priority),
       status: 'OPEN',
       user_id: 1,
       ticket_group_id: ticketGroupId

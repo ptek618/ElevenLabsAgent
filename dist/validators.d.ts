@@ -24,4 +24,11 @@ export declare const ticketCreateSchema: z.ZodObject<{
 export declare const customerInventorySchema: z.ZodObject<{
     accountId: z.ZodString;
 }, z.core.$strip>;
+export declare const wifiCredentialsSchema: z.ZodObject<{
+    account_id: z.ZodOptional<z.ZodString>;
+    phone: z.ZodOptional<z.ZodString>;
+    email: z.ZodOptional<z.ZodString>;
+    name: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export declare const statusPageSchema: z.ZodObject<{}, z.core.$strip>;
 //# sourceMappingURL=validators.d.ts.map

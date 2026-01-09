@@ -1,0 +1,1 @@
+{"version":3,"file":"statusPageClient.d.ts","sourceRoot":"","sources":["../src/statusPageClient.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,kBAAkB,EAAE,MAAM,SAAS,CAAC;AAE7C,qBAAa,gBAAgB;IAC3B,OAAO,CAAC,QAAQ,CAAC,aAAa,CAAmC;IAE3D,gBAAgB,IAAI,OAAO,CAAC,kBAAkB,CAAC;CAkHtD"}

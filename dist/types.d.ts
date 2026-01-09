@@ -16,6 +16,8 @@ export interface CustomerSearchResponse {
         emails: string[];
         serviceAddress: string;
         billingAddress: string;
+        accountStatus: number;
+        accountStatusName: string;
     } | null;
     candidates: Array<{
         id: string;
@@ -24,6 +26,8 @@ export interface CustomerSearchResponse {
         address: string;
         phone: string;
         email: string;
+        accountStatus: number;
+        accountStatusName: string;
     }>;
 }
 export interface CustomerFinancialsRequest {
@@ -85,6 +89,57 @@ export interface CustomerInventoryResponse {
         status: 'online' | 'offline' | 'unknown';
         icmpDeviceStatus: string;
     }>;
+}
+export interface WifiCredentialsRequest {
+    account_id?: string;
+    phone?: string;
+    email?: string;
+    name?: string;
+}
+export interface WifiCredentialsResponse {
+    found: boolean;
+    account_id?: string;
+    job_id?: string;
+    job_type_id?: number;
+    job_datetime?: string;
+    ssid?: string;
+    wpa_key?: string;
+    source_fields?: Array<{
+        key: string;
+        value: string;
+    }>;
+    parsing_method?: string;
+    notes?: string;
+    reason?: 'no_install_job' | 'no_custom_fields' | 'not_found' | 'ambiguous_account' | 'auth_error' | 'graphql_error';
+    details?: string;
+    candidates?: Array<{
+        account_id: string;
+        name: string;
+    }>;
+}
+export interface StatusPageRequest {
+}
+export interface StatusPageResponse {
+    overallStatus: 'operational' | 'degraded' | 'outage' | 'maintenance';
+    lastUpdated: string;
+    services: Array<{
+        name: string;
+        status: 'up' | 'down' | 'degraded';
+        uptime: string;
+    }>;
+    overallUptime: {
+        last24Hours: string;
+        last7Days: string;
+        last30Days: string;
+        last90Days: string;
+    };
+    recentUpdates: Array<{
+        date: string;
+        title: string;
+        description: string;
+        status: string;
+    }>;
+    statusPageUrl: string;
 }
 export interface ApiError {
     ok: false;

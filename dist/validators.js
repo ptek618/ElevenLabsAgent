@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.customerInventorySchema = exports.ticketCreateSchema = exports.customerNotesSchema = exports.customerFinancialsSchema = exports.customerSearchSchema = void 0;
+exports.statusPageSchema = exports.wifiCredentialsSchema = exports.customerInventorySchema = exports.ticketCreateSchema = exports.customerNotesSchema = exports.customerFinancialsSchema = exports.customerSearchSchema = void 0;
 const zod_1 = require("zod");
 exports.customerSearchSchema = zod_1.z.object({
     name: zod_1.z.string().optional(),
@@ -33,4 +33,17 @@ exports.ticketCreateSchema = zod_1.z.object({
 exports.customerInventorySchema = zod_1.z.object({
     accountId: zod_1.z.string().min(1, "Account ID is required"),
 });
+exports.wifiCredentialsSchema = zod_1.z.object({
+    account_id: zod_1.z.string().optional(),
+    phone: zod_1.z.string().optional(),
+    email: zod_1.z.string().optional(),
+    name: zod_1.z.string().optional(),
+}).refine((data) => {
+    const fields = [data.account_id, data.phone, data.email, data.name];
+    const definedFields = fields.filter(field => field !== undefined && field !== '');
+    return definedFields.length >= 1;
+}, {
+    message: "At least one of account_id, phone, email, or name must be provided",
+});
+exports.statusPageSchema = zod_1.z.object({});
 //# sourceMappingURL=validators.js.map

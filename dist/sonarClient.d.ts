@@ -15,6 +15,7 @@ export declare class SonarClient {
     getAccountFinancials(accountId: string): Promise<any>;
     getAccountNotes(accountId: string, limit?: number, since?: string): Promise<any>;
     private getCategoryGroupId;
+    private mapPriorityToEnum;
     createTicket(input: {
         accountId: string;
         title: string;
@@ -23,6 +24,7 @@ export declare class SonarClient {
         category?: string;
     }): Promise<any>;
     getAccountInventory(accountId: string): Promise<any>;
+    getAccountInstallJobs(accountId: string): Promise<any>;
     introspectSchema(): Promise<any>;
 }
 //# sourceMappingURL=sonarClient.d.ts.map

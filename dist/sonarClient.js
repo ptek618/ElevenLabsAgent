@@ -82,6 +82,11 @@ class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -109,6 +114,11 @@ class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -136,6 +146,11 @@ class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -173,6 +188,11 @@ class SonarClient {
                   ... on Account {
                     id
                     name
+                    account_status_id
+                    account_status {
+                      id
+                      name
+                    }
                     addresses {
                       entities {
                         line1
@@ -203,6 +223,11 @@ class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -230,6 +255,11 @@ class SonarClient {
             entities {
               id
               name
+              account_status_id
+              account_status {
+                id
+                name
+              }
               addresses {
                 entities {
                   line1
@@ -342,6 +372,21 @@ class SonarClient {
         const normalizedCategory = category.toLowerCase().trim();
         return categoryGroupMap[normalizedCategory] || 49;
     }
+    mapPriorityToEnum(priority) {
+        if (!priority) {
+            return 'MEDIUM';
+        }
+        const normalizedPriority = priority.toLowerCase().trim();
+        // Map user-friendly priority names to valid Sonar TicketPriority enum values
+        const priorityMap = {
+            'low': 'LOW',
+            'medium': 'MEDIUM',
+            'high': 'HIGH',
+            'critical': 'CRITICAL',
+            'urgent': 'CRITICAL', // Map "urgent" to "CRITICAL" since Sonar doesn't have URGENT
+        };
+        return priorityMap[normalizedPriority] || 'MEDIUM';
+    }
     async createTicket(input) {
         const mutation = `
       mutation CreateInternalTicket($input: CreateInternalTicketMutationInput!) {
@@ -359,7 +404,7 @@ class SonarClient {
             description: input.body,
             ticketable_type: 'Account',
             ticketable_id: parseInt(input.accountId),
-            priority: input.priority ? input.priority.toUpperCase() : 'MEDIUM',
+            priority: this.mapPriorityToEnum(input.priority),
             status: 'OPEN',
             user_id: 1,
             ticket_group_id: ticketGroupId
@@ -391,6 +436,40 @@ class SonarClient {
                     overall_status
                     icmp_device_status
                     snmp_device_status
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+        return this.makeRequest(query, { accountId: parseInt(accountId) });
+    }
+    async getAccountInstallJobs(accountId) {
+        const query = `
+      query GetAccountInstallJobs($accountId: Int64Bit!) {
+        accounts(id: $accountId) {
+          entities {
+            id
+            name
+            jobs(paginator: {page: 1, records_per_page: 50}, sorter: [{attribute: created_at, direction: DESC}]) {
+              entities {
+                id
+                created_at
+                updated_at
+                job_type {
+                  id
+                  name
+                }
+                custom_field_data {
+                  entities {
+                    id
+                    value
+                    custom_field {
+                      id
+                      name
+                    }
                   }
                 }
               }
